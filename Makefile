@@ -24,42 +24,36 @@ endif
 
 SRC  := wrk.c net.c ssl.c aprintf.c stats.c script.c units.c \
 		ae.c zmalloc.c http_parser.c tinymt64.c hdr_histogram.c
-BIN  := wrk
+BIN  := wrk2
 
 ODIR := obj
 OBJ  := $(patsubst %.c,$(ODIR)/%.o,$(SRC)) $(ODIR)/bytecode.o
 
-LDIR     = deps/luajit/src
-LIBS    := -lluajit $(LIBS)
-CFLAGS  += -I$(LDIR)
-LDFLAGS += -L$(LDIR)
+LIBS    := -lluajit-5.1 $(LIBS)
+CFLAGS  += -I/usr/local/include/luajit-2.0
+LDFLAGS += -L/usr/local/lib
 
 all: $(BIN)
 
 clean:
 	$(RM) $(BIN) obj/*
-	@$(MAKE) -C deps/luajit clean
 
 $(BIN): $(OBJ)
 	@echo LINK $(BIN)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(OBJ): config.h Makefile $(LDIR)/libluajit.a | $(ODIR)
+$(OBJ): config.h Makefile | $(ODIR)
 
 $(ODIR):
 	@mkdir -p $@
 
 $(ODIR)/bytecode.o: src/wrk.lua
 	@echo LUAJIT $<
-	@$(SHELL) -c 'cd $(LDIR) && ./luajit -b $(CURDIR)/$< $(CURDIR)/$@'
+	@$(SHELL) -c 'luajit -b $(CURDIR)/$< $(CURDIR)/$@'
 
 $(ODIR)/%.o : %.c
 	@echo CC $<
 	@$(CC) $(CFLAGS) -c -o $@ $<
-
-$(LDIR)/libluajit.a:
-	@echo Building LuaJIT...
-	@$(MAKE) -C $(LDIR) BUILDMODE=static
 
 .PHONY: all clean
 .SUFFIXES:
